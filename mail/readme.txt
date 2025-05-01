@@ -1,0 +1,1 @@
+Here lies all the thigns needed for connecting to mail and processing emails so they can be send in right format
