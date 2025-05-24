@@ -87,6 +87,10 @@ async def check_mail(bot):
                                         text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
                                         worker_id = db.get_task_by_number(info["task_number"])
                                         await bot.send_message(worker_id[4], text)
+                                        supervisors = db.get_all_supervisors()
+                                        for supervisor in supervisors:
+                                            supervisor_id = supervisor[0]
+                                            await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>,  сразу {info['status']}.")
                             else:
                                 if info["status"] in ["Закрыта", "Отмена", "Закрыто", "Отменено", "Не выполнено подрядчиком", "Выдано ошибочно"]:
                                     db.add_task(
@@ -95,6 +99,10 @@ async def check_mail(bot):
                                         info["work_type"], info["description"], info["short_description"],
                                         info["comments"], info["address"], info["responsible_person"]
                                     )
+                                    supervisors = db.get_all_supervisors()
+                                    for supervisor in supervisors:
+                                        supervisor_id = supervisor[0]
+                                        await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>,  сразу {info['status']}.")
                                 elif info["status"] in ["Новое","В работе","Новая"]:
                                     encode = quote_plus(info['address'])
                                     url = f"https://yandex.ru/maps/?text={encode}"
