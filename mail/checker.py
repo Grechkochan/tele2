@@ -35,32 +35,40 @@ async def check_mail(bot):
                 for response_part in msg_data:
                     if isinstance(response_part, tuple):
                         msg = email.message_from_bytes(response_part[1])
-                        sender = msg["From"]
-                        subject_parts = decode_header(msg["Subject"])
-                        subject = " ".join(
-                            part.decode(encoding or "utf-8", errors="ignore") if isinstance(part, bytes) else part
-                            for part, encoding in subject_parts
-                        )
+                        date_str = msg["Date"]
+                        msg_date = email.utils.parsedate_tz(date_str)
+                        msg_date = datetime.fromtimestamp(email.utils.mktime_tz(msg_date), tz)
 
-                        print(f"Получено письмо от: {sender}, Тема: {subject}")
-                        status_match = re.search(r"\((.*?)\)", subject)
-                        status_text = status_match.group(1) if status_match else "Неизвестно"
-                        body = ""
-                        if msg.is_multipart():
-                            for part in msg.walk():
-                                content_type = part.get_content_type()
-                                content_disposition = str(part.get("Content-Disposition"))
-                                if content_type == "text/plain" and "attachment" not in content_disposition:
-                                    payload = part.get_payload(decode=True)
-                                    charset = part.get_content_charset()
-                                    body = payload.decode(charset or "utf-8", errors="ignore")
-                                    break
-                                elif content_type == "text/html" and not body:
-                                    payload = part.get_payload(decode=True)
-                                    charset = part.get_content_charset()
-                                    html_body = payload.decode(charset or "utf-8", errors="ignore")
-                                    soup = BeautifulSoup(html_body, "html.parser")
-                                    body = soup.get_text(separator="\n", strip=True)
+                        if msg_date >= minutes_ago:
+                            sender = msg["From"]
+                            subject_parts = decode_header(msg["Subject"])
+                            subject = " ".join(
+                                part.decode(encoding or "utf-8", errors="ignore") if isinstance(part, bytes) else part
+                                for part, encoding in subject_parts
+                            )
+
+                            print(f"Получено письмо от: {sender}, Тема: {subject}")
+                            status_match = re.search(r"\((.*?)\)", subject)
+                            status_text = status_match.group(1) if status_match else "Неизвестно"
+
+                            body = ""
+                            if msg.is_multipart():
+                                for part in msg.walk():
+                                    content_type = part.get_content_type()
+                                    content_disposition = str(part.get("Content-Disposition"))
+
+                                    if content_type == "text/plain" and "attachment" not in content_disposition:
+                                        payload = part.get_payload(decode=True)
+                                        charset = part.get_content_charset()
+                                        body = payload.decode(charset or "utf-8", errors="ignore")
+                                        break
+                                    elif content_type == "text/html" and not body:
+                                        payload = part.get_payload(decode=True)
+                                        charset = part.get_content_charset()
+                                        html_body = payload.decode(charset or "utf-8", errors="ignore")
+
+                                        soup = BeautifulSoup(html_body, "html.parser")
+                                        body = soup.get_text(separator="\n", strip=True)
                             else:
                                 payload = msg.get_payload(decode=True)
                                 charset = msg.get_content_charset()
