@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta
 conn = sqlite3.connect("db.db")
 cursor = conn.cursor()
 
@@ -148,32 +149,62 @@ class SQLighter:
             result = self.cursor.execute("SELECT `topic_id` FROM `BaseStations` WHERE `sitename` = ?", (sitename,)).fetchone()
             return result
         
-    def get_accepted_tasks_day(self,date):
+    def get_accepted_tasks_day(self, date_str):
+        start = datetime.strptime(date_str, "%Y-%m-%d")
+        end = start + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` = ?",(date,)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ?",
+                (start, end)
+            ).fetchall()
             return result
-        
-    def get_accepted_tasks_day_worker(self,date,workerid):
+
+    def get_accepted_tasks_day_worker(self, date_str, workerid):
+        start = datetime.strptime(date_str, "%Y-%m-%d")
+        end = start + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` = ? AND `worker` = ?",(date,workerid)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ? AND `worker` = ?",
+                (start, end, workerid)
+            ).fetchall()
             return result
-    
-    def get_accepted_tasks_week(self, start_date, end_date):
+
+    def get_accepted_tasks_week(self, start_date_str, end_date_str):
+        start = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ?",(start_date,end_date,)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ?",
+                (start, end)
+            ).fetchall()
             return result
-        
-    def get_accepted_tasks_week_worker(self, start_date, end_date, workerid):
+
+    def get_accepted_tasks_week_worker(self, start_date_str, end_date_str, workerid):
+        start = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `worker` = ? AND `datetime` BETWEEN ? AND ?",(workerid,start_date,end_date,)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ? AND `worker` = ?",
+                (start, end, workerid)
+            ).fetchall()
             return result
-        
-    def get_new_tasks_today(self,date):
+
+    def get_new_tasks_today(self, date_str):
+        start = datetime.strptime(date_str, "%Y-%m-%d")
+        end = start + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'Новое' AND  `datetime` = ?",(date,)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'Новое' AND `datetime` BETWEEN ? AND ?",
+                (start, end)
+            ).fetchall()
             return result
-        
-    def get_new_tasks_week(self,start_day,end_date):
+
+    def get_new_tasks_week(self, start_date_str, end_date_str):
+        start = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
-            result = self.cursor.execute("SELECT * FROM `Tasks` WHERE `status` = 'Новое' AND `datetime` BETWEEN ? AND ?",(start_day, end_date)).fetchall()
+            result = self.cursor.execute(
+                "SELECT * FROM `Tasks` WHERE `status` = 'Новое' AND `datetime` BETWEEN ? AND ?",
+                (start, end)
+            ).fetchall()
             return result

@@ -20,7 +20,7 @@ async def period_accepted_tasks(callback_query: CallbackQuery, state: FSMContext
 async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
     position = db.is_supervisor(user_id)
-    today = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%d-%m-%Y %H:%M:%S")
+    today = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%Y-%m-%d")
     if position == "Supervisor":
         tasks = db.get_accepted_tasks_day(today)
         role = "Supervisor"
@@ -69,8 +69,11 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
     user_id = callback_query.from_user.id
     position = db.is_supervisor(user_id)
     tz = pytz.timezone("Europe/Moscow")
-    end_date = datetime.now(tz).date()
-    start_date = end_date - timedelta(days=6)
+    end_date_dt = datetime.now(tz).date()
+    start_date_dt = end_date_dt - timedelta(days=6)
+
+    end_date = end_date_dt.strftime("%Y-%m-%d")
+    start_date = start_date_dt.strftime("%Y-%m-%d")
     if position == "Supervisor":
         tasks = db.get_accepted_tasks_week(start_date,end_date)
         role = "Supervisor"

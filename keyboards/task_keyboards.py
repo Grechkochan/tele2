@@ -95,3 +95,33 @@ def create_tasks_keyboard(tasks, current_page):
     button = InlineKeyboardButton(text="Главное меню", callback_data = "Main_Menu")
     kb.append(button)
     return InlineKeyboardMarkup(inline_keyboard=kb)
+
+def get_tasks_keyboard(tasks, page=0):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+    start = page * 5
+    end = start + 5
+    page_tasks = tasks[start:end]
+
+    buttons = [
+        [InlineKeyboardButton(text=f"{t['title']}", callback_data=f"view_task:{t['id']}")]
+        for t in page_tasks
+    ]
+    keyboard.inline_keyboard.extend(buttons)
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton(text="⬅ Назад", callback_data=f"nav:{page - 1}"))
+    if end < len(tasks):
+        nav_buttons.append(InlineKeyboardButton(text="➡ Далее", callback_data=f"nav:{page + 1}"))
+    keyboard.inline_keyboard.append(nav_buttons)
+
+    keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔙 Отмена", callback_data="cancel")])
+    return keyboard
+
+def confirm_keyboard():
+    keyboard = [
+        [InlineKeyboardButton(text="Да", callback_data="confirm_cancel")],
+        [InlineKeyboardButton(text="Нет", callback_data="back_to_list")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+

@@ -16,8 +16,6 @@ async def find_task_callback(callback_query: CallbackQuery, state: FSMContext):
 @search_router.message(SearchState.waiting_for_task_number)
 async def search_task_callback(message: Message, state: FSMContext):
     task_number = message.text.strip()
-
-    # Проверка корректности номера
     if not task_number.startswith("T2WO"):
         await message.answer("Неверный формат номера. Попробуйте снова.")
         return

@@ -27,13 +27,15 @@ async def statistics_day(callback_query: CallbackQuery, state: FSMContext):
     text = ""
     if position == "Supervisor":
         stats = db.get_status_counts_by_date(date)
+        text = "Статус: \n"
         for status, count in stats.items():
-            text+=(f"Статус \n{status}: {count}\n")
+            text+=(f"{status}: {count}\n")
             
     else:
         stats = db.get_status_counts_by_date_and_worker(date,user_id)
+        text = "Статус: \n"
         for status, count in stats.items():
-            text+=(f"Статус {status}: {count}\n")
+            text+=(f"{status}: {count}\n")
     
     if not text:
         text = "Нет задач на сегодня"
@@ -55,12 +57,14 @@ async def statistics_week(callback_query: CallbackQuery, state: FSMContext):
 
     if position == "Supervisor":
         stats = db.get_status_counts_by_date_range(start_str, end_str)
+        text = "Статус: \n"
         for status, count in stats.items():
-            text += f"Статус - {status}: {count}\n"
+            text += f"{status}: {count}\n"
     else:
         stats = db.get_status_counts_by_date_range_and_worker(start_str, end_str, user_id)
+        text = "Статус: \n"
         for status, count in stats.items():
-            text += f"Статус - {status}: {count}\n"
+            text += f"{status}: {count}\n"
 
     if not stats:
         text = "Нет задач за последнюю неделю."
@@ -98,17 +102,17 @@ async def end_date_chosen(callback_query: CallbackQuery, callback_data: SimpleCa
             stats = db.get_status_counts_by_date_range(start_date,date)
             start_date_formatted = start_date.strftime("%Y-%m-%d")
             date_formatted = date.strftime("%Y-%m-%d")
-            text+=(f"Заявки с {start_date_formatted}, по {date_formatted}\n")
+            text+=(f"Заявки с {start_date_formatted}, по {date_formatted}\nСтатус:\n")
             for status, count in stats.items():
-                text+=(f"Статус - {status}: {count}\n")
+                text+=(f"{status}: {count}\n")
                 
         else:
             stats = db.get_status_counts_by_date_range_and_worker(start_date,date,user_id)
             start_date_formatted = start_date.strftime("%Y-%m-%d")
             date_formatted = date.strftime("%Y-%m-%d")
-            text+=(f"Заявки с {start_date_formatted}, по {date_formatted}\n")
+            text+=(f"Заявки с {start_date_formatted}, по {date_formatted}\nСтатус:\n")
             for status, count in stats.items():
-                text+=(f"Статус - {status}: {count}\n")
+                text+=(f"{status}: {count}\n")
         
         if not text:
             text = "Нет задач за выбранный период времени"

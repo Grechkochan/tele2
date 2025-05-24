@@ -24,6 +24,7 @@ def main_menu():
                 [InlineKeyboardButton(text="Новые заявки", callback_data = "New_Tasks")],
                 [InlineKeyboardButton(text="Поиск по заявке", callback_data = "Find_Task")],
                 [InlineKeyboardButton(text="Статистика", callback_data = "Statistics")]
+
         ]
     )
     return kb
@@ -80,3 +81,14 @@ def create_tasks_keyboard(tasks, current_page):
     button = InlineKeyboardButton(text="Главное меню", callback_data = "Main_Menu")
     kb.append(button)
     return InlineKeyboardMarkup(inline_keyboard=kb)
+
+
+def send_to_topic_button(task_number):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Отправить в топик", callback_data = f"send_to_topic:{task_number}")],
+            [InlineKeyboardButton(text="Принять заявку", callback_data = f"Accept_Task:{task_number}")]
+        ]
+    )
+    return kb
+

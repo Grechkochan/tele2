@@ -16,22 +16,46 @@ def extract_important_info(text):
         "Ответственный Tele2": "responsible_person",
     }
 
-    extracted_info = {}
-    text = re.sub(r":\s*\n*\s*", ": ", text)
+    # создаём словарь со всеми полями сразу, по умолчанию — пустые строки
+    extracted_info = {v: "" for v in KEYWORDS.values()}
 
-    for line in text.split("\n"):
+    # приводим в единый вид « / » и « :»
+    text = re.sub(r"\s*/\s*", "/", text)
+    text = re.sub(r"\s*:\s*", ":", text)
+
+    for line in text.splitlines():
         line = line.strip()
-        if ":" in line:
-            for keyword, key in KEYWORDS.items():
-                if keyword in line:
-                    key_value = line.split(":", 1)
-                    value = key_value[1].strip() if len(key_value) > 1 else " "
+        if ":" not in line:
+            continue
 
-                    if key == "task_number":
-                        value = re.sub(r"(\w+)\s+(\d+)", r"\1\2", value)
+        raw_key, raw_value = line.split(":", 1)
+        raw_key = raw_key.strip()
+        raw_value = raw_value.strip()
 
-                    value = re.sub(r"(\d{2,4}-\d{2}-\d{2})\s+(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2})", r"\1 \2:\3:\4", value)
+        # пропускаем, если после ':' нет никакого значения
+        if not raw_value:
+            continue
 
-                    extracted_info[key] = value
+        for keyword, key in KEYWORDS.items():
+            if raw_key == keyword:
+                value = raw_value
+
+                # «None» → пустая строка
+                if value.lower() == "none":
+                    value = ""
+
+                # склеиваем «WO 1234» → «WO1234»
+                if key == "task_number":
+                    value = re.sub(r"(\w+)\s+(\d+)", r"\1\2", value)
+
+                # унифицируем формат даты «YYYY-MM-DD HH:MM:SS»
+                value = re.sub(
+                    r"(\d{2,4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})",
+                    r"\1 \2:\3:\4",
+                    value,
+                )
+
+                extracted_info[key] = value
+                break
 
     return extracted_info
