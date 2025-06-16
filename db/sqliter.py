@@ -9,6 +9,24 @@ class SQLighter:
         self.connection = sqlite3.connect(database)
         self.cursor = self.connection.cursor()
 
+    def _create_sent_messages_table(self) -> None:
+        """
+        Создаёт таблицу sent_messages, если она ещё не существует.
+        Хранит информацию о том, каким супервизорам (chat_id) и каким сообщением (message_id)
+        была разослана каждая заявка (task_number).
+        """
+        with self.connection:
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS `sent_messages` (
+                    `id`           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    `task_number`  TEXT    NOT NULL,
+                    `chat_id`      INTEGER NOT NULL,
+                    `message_id`   INTEGER NOT NULL,
+                    `sent_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(`task_number`, `chat_id`, `message_id`)
+                );
+            """)
+
     def add_worker(self, tgId, WorkerFIO, phoneNumber, City, Position):
         with self.connection:
             self.cursor.execute("INSERT INTO `Workers` (`tgId`, `WorkerFIO`, `phoneNumber`, `City`, `Position` ) VALUES(?,?,?,?,?)",
@@ -208,3 +226,34 @@ class SQLighter:
                 (start, end)
             ).fetchall()
             return result
+        
+    def save_sent_message(self, task_number: str, chat_id: int, message_id: int) -> None:
+        """
+        Сохраняет факт того, что сообщение о задаче было отправлено супервизору.
+        Дубли записей игнорируются.
+        """
+        with self.connection:
+            self.cursor.execute(
+                """
+                INSERT OR IGNORE INTO `sent_messages`
+                    (`task_number`, `chat_id`, `message_id`)
+                VALUES (?, ?, ?)
+                """,
+                (task_number, chat_id, message_id)
+            )
+
+    def get_sent_messages(self, task_number: str) -> list[tuple[int, int]]:
+        """
+        Возвращает список кортежей (chat_id, message_id)
+        для всех супервизоров, которым была разослана заявка.
+        """
+        with self.connection:
+            result = self.cursor.execute(
+                """
+                SELECT `chat_id`, `message_id`
+                  FROM `sent_messages`
+                 WHERE `task_number` = ?
+                """,
+                (task_number,)
+            ).fetchall()
+            return result    

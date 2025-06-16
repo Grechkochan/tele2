@@ -131,13 +131,17 @@ async def check_mail(bot):
                                     supervisors = db.get_all_supervisors()
                                     for supervisor in supervisors:
                                         supervisor_id = supervisor[0]
-                                        await bot.send_message(supervisor_id, message_text, parse_mode="HTML", reply_markup = send_to_topic_button(info["task_number"]))
+                                        sent = await bot.send_message(supervisor_id, message_text, parse_mode="HTML", reply_markup = send_to_topic_button(info["task_number"]))
+                                        db.save_sent_message(info["task_number"], supervisor_id, sent.message_id)
+                                        print(sent.message_id)
                                     db.add_task(
                                         info["task_number"], info["bs_number"], "Новое", None,
                                         info["issue_datetime"], None, None,
                                         info["work_type"], info["description"], info["short_description"],
                                         info["comments"], info["address"], info["responsible_person"]
                                     )
+                                    
+
 
             mail.close()
             mail.logout()
