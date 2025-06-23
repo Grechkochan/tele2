@@ -38,7 +38,7 @@ async def check_mail(bot):
 
                         if msg_date >= minutes_ago:
                             sender = msg["From"]
-                            print(sender)
+                            
                             subject_parts = decode_header(msg["Subject"])
                             subject = " ".join(
                                 part.decode(encoding or "utf-8", errors="ignore") if isinstance(part, bytes) else part
@@ -46,29 +46,31 @@ async def check_mail(bot):
                             )
                             status_match = re.search(r"\((.*?)\)", subject)
                             status_text = status_match.group(1) if status_match else "Неизвестно"
-
+                            print(sender)
+                            print(status_text)
                             body = ""
                             if msg.is_multipart():
                                 for part in msg.walk():
-                                    content_type = part.get_content_type()
-                                    content_disposition = str(part.get("Content-Disposition"))
-
-                                    if content_type == "text/plain" and "attachment" not in content_disposition:
+                                    print("Content-Type:", part.get_content_type())
+                                    print("Content-Transfer-Encoding:", part.get("Content-Transfer-Encoding"))
+                                    print("Content-Disposition:", part.get("Content-Disposition"))
+                                    print("Charset:", part.get_content_charset())
+                                    ctype = part.get_content_type()
+                                    disp = str(part.get("Content-Disposition") or "").lower()
+                                    charset = part.get_content_charset() or "utf-8"
+                                    if ctype == "text/html" and "attachment" not in disp:
                                         payload = part.get_payload(decode=True)
-                                        charset = part.get_content_charset()
-                                        body = payload.decode(charset or "utf-8", errors="ignore")
+                                        html = payload.decode(charset, errors="ignore")
+                                        body = BeautifulSoup(html, "html.parser").get_text("\n", strip=True)
                                         break
-                                    elif content_type == "text/html" and not body:
+                                    elif ctype == "text/plain" and "attachment" not in disp and not body:
                                         payload = part.get_payload(decode=True)
-                                        charset = part.get_content_charset()
-                                        html_body = payload.decode(charset or "utf-8", errors="ignore")
-
-                                        soup = BeautifulSoup(html_body, "html.parser")
-                                        body = soup.get_text(separator="\n", strip=True)
+                                        body = payload.decode(charset, errors="ignore")
+                                        
                             else:
                                 payload = msg.get_payload(decode=True)
-                                charset = msg.get_content_charset()
-                                body = payload.decode(charset or "utf-8", errors="ignore")
+                                charset = msg.get_content_charset() or "utf-8"
+                                body = payload.decode(charset, errors="ignore")
 
                             info = extract_important_info(body)
                             info["status"] = status_text
@@ -85,16 +87,18 @@ async def check_mail(bot):
                                         for supervisor in supervisors:
                                             supervisor_id = supervisor[0]
                                             await bot.send_message(supervisor_id, text)
-                                        worker_id = db.get_task_by_number(info["task_number"])
-                                        await bot.send_message(worker_id[4], text)
+                                        worker = db.get_task_by_number(info["task_number"])
+                                        if worker and len(worker) > 4 and worker[4]:
+                                            await bot.send_message(worker[4], text)
                                 if info["status"] in ["Отмена", "Отменено"]:
                                     if info["status"] == "Отменено":
                                         info["status"] = "Отмена"
                                     if existing_task[0] not in ["Отмена"]:
                                         db.close_task(info["status"], info["finish_datetime"], info["task_number"])
                                         text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
-                                        worker_id = db.get_task_by_number(info["task_number"])
-                                        await bot.send_message(worker_id[4], text)
+                                        worker = db.get_task_by_number(info["task_number"])
+                                        if worker and len(worker) > 4 and worker[4]:
+                                            await bot.send_message(worker[4], text)
                                         supervisors = db.get_all_supervisors()
                                         for supervisor in supervisors:
                                             supervisor_id = supervisor[0]

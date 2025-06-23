@@ -1,46 +1,70 @@
 import re
 
 def extract_important_info(text):
-    KEYWORDS = {
+    # Алиасы ключей → поля
+    FIELD_ALIASES = {
         "Номер задания": "task_number",
         "Номер БС": "bs_number",
         "Статус": "status",
+        "Дата выдачи": "issue_datetime",
         "Дата/Время выдачи задания": "issue_datetime",
+        "Время прибытия": "arrival_datetime",
         "Дата/Время прибытия на объект необходимое": "arrival_datetime",
         "Дата/Время завершения работ": "finish_datetime",
         "Тип работ": "work_type",
         "Краткое описание работ": "short_description",
         "Описание работ": "description",
         "Примечание/Комментарии": "comments",
+        "Примечание / Комментарии": "comments",
         "Адрес": "address",
-        "Ответственный Tele2": "responsible_person",
+        "Координаты": "coordinates",
+        "Подрядная организация": "contractor",
+        # НЕ добавляем сюда "Ответственный"!
     }
 
-    # создаём результирующий словарь со всеми полями по умолчанию пустыми
-    extracted = {v: "" for v in KEYWORDS.values()}
+    # Инициализируем результат
+    extracted = {field: "" for field in set(FIELD_ALIASES.values()) | {"responsible_person"}}
 
-    # для каждого ключа ищем блок текста до следующего ключа или до конца
-    for key, field in KEYWORDS.items():
-        # (?ms) — re.MULTILINE + re.DOTALL: ^ и $ работают на линию, а . ловит переводы строк
-        pattern = rf"(?ms)^{re.escape(key)}\s*:\s*(.*?)(?=^\S.*?:|\Z)"
-        m = re.search(pattern, text)
-        if not m:
+    # Собираем общий паттерн по всем алиасам
+    aliases = "|".join(re.escape(k) for k in FIELD_ALIASES)
+    main_re = re.compile(
+        rf"(?P<key>{aliases})\s*:\s*(?P<value>.*?)(?=(?:\n\S)|\Z)",
+        re.DOTALL
+    )
+
+    # 1. Проходим по всему тексту и вытаскиваем значения по алиасам
+    for m in main_re.finditer(text):
+        key = m.group("key")
+        field = FIELD_ALIASES[key]
+        val = m.group("value").strip()
+        if not val or val.lower() == "none":
             continue
-        value = m.group(1).strip()  # убираем лишние пробелы и переносы
-
-        # если значение «None» или пусто — считаем его пустым
-        if not value or value.lower() == "none":
-            value = ""
-        # нормализуем WO номер
-        elif field == "task_number":
-            value = re.sub(r"(\w+)\s+(\d+)", r"\1\2", value)
-        # нормализуем даты в формате «YYYY-MM-DD HH:MM:SS»
-        value = re.sub(
+        # Нормализация номера
+        if field == "task_number":
+            val = re.sub(r"(\w+)\s+(\d+)", r"\1\2", val)
+        # Нормализация дат
+        val = re.sub(
             r"(\d{2,4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})",
             r"\1 \2:\3:\4",
-            value,
+            val
         )
+        extracted[field] = val
 
-        extracted[field] = value
+    # 2. Убираем из comments чистую подстроку "Ответственный Tele2:" если она там есть
+    if extracted["comments"]:
+        extracted["comments"] = re.sub(
+            r"(?m)^\s*Ответственный(?: Tele2)?:\s*$",
+            "",
+            extracted["comments"]
+        ).strip()
+
+    # 3. Вытаскиваем responsible_person отдельно
+    m2 = re.search(
+        r"^Ответственный(?: Tele2)?\s*:\s*(?P<resp>.+?)\s*(?=\n\S|\Z)",
+        text,
+        flags=re.MULTILINE
+    )
+    if m2:
+        extracted["responsible_person"] = m2.group("resp").strip()
 
     return extracted
