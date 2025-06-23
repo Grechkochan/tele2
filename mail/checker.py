@@ -73,33 +73,32 @@ async def check_mail(bot):
                             info = extract_important_info(body)
                             info["status"] = status_text
                                 
-                            existing = db.get_task_status(info["task_number"])
-                            if existing:
-                                status = info["status"]
-                                if status == "Закрыто":
-                                    status = "Закрыта"
-                                elif status == "Отменено":
-                                    status = "Отмена"
-                                if status in ("Закрыта", "Отмена"):
-                                    db.close_task(status, info["finish_datetime"], info["task_number"])
-                                    worker_record = db.get_task_by_number(info["task_number"])
-                                    worker_chat_id = worker_record[4] if worker_record and len(worker_record) > 4 else None
-                                    text_worker = (
-                                        f"Заявка <code>{info['task_number']}</code> на б/с <b>{info['bs_number']}</b> "
-                                        f"обновлена, статус: <b>{status}</b>."
-                                    )
-                                    if worker_chat_id:
-                                        await bot.send_message(worker_chat_id, text_worker)
-                                    if status == "Закрыта":
-                                        text_sup = text_worker
-                                    else:  # Отмена
-                                        text_sup = (
-                                            f"Новая заявка\n"
-                                            f"<code>{info['task_number']}</code>\n"
-                                            f"На б/с <b>{info['bs_number']}</b>, сразу {status}."
-                                        )
-                                        for (sup_id,) in db.get_all_supervisors():
-                                            await bot.send_message(sup_id, text_sup)
+                            existing_task = db.get_task_status(info["task_number"])
+                            if existing_task:
+                                if info["status"] in ["Закрыта", "Закрыто"]:
+                                    if info["status"] == "Закрыто" :
+                                        info["status"] = "Закрыта"
+                                    if existing_task[0] not in ["Закрыта"]:
+                                        supervisors = db.get_all_supervisors()
+                                        db.close_task(info["status"], info["finish_datetime"], info["task_number"])
+                                        text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
+                                        for supervisor in supervisors:
+                                            supervisor_id = supervisor[0]
+                                            await bot.send_message(supervisor_id, text)
+                                        worker_id = db.get_task_by_number(info["task_number"])
+                                        await bot.send_message(worker_id[4], text)
+                                if info["status"] in ["Отмена", "Отменено"]:
+                                    if info["status"] == "Отменено":
+                                        info["status"] = "Отмена"
+                                    if existing_task[0] not in ["Отмена"]:
+                                        db.close_task(info["status"], info["finish_datetime"], info["task_number"])
+                                        text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
+                                        worker_id = db.get_task_by_number(info["task_number"])
+                                        await bot.send_message(worker_id[4], text)
+                                        supervisors = db.get_all_supervisors()
+                                        for supervisor in supervisors:
+                                            supervisor_id = supervisor[0]
+                                            await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>, сразу {info['status']}.")
                             else:
                                 if info["status"] in ["Закрыта", "Отмена", "Закрыто", "Отменено", "Не выполнено подрядчиком", "Выдано ошибочно"]:
                                     if info["status"] == "Отменено" :
