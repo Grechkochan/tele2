@@ -6,6 +6,7 @@ from keyboards.task_keyboards import create_supervisor_keyboard, create_worker_k
 from keyboards.menu import main_menu
 from datetime import datetime, timedelta
 import pytz
+from aiogram.types import InlineKeyboardButton
 menu_router = Router()
 
 @menu_router.callback_query(F.data == "Accepted_Tasks")
@@ -40,7 +41,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
         await callback_query.message.edit_text("Задачи за сегодня:", reply_markup=keyboard)
     else:
         task = tasks[0]
-        _, task_number, base_station, status, assigned_to, issue_time, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person = task
+        _, task_number, base_station, status, assigned_to, issue_time, timereq, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
         fio = db.get_fio_worker(assigned_to)
 
         message_text = (
@@ -49,6 +50,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
             f"<b>Статус:</b> {status}\n"
             f"<b>Исполнитель:</b> {fio}\n"
             f"<b>Выдана:</b> {issue_time}\n"
+            f"<b>Время прибытия:</b> {timereq}\n"
             f"<b>Принята:</b> {acceptance_time if acceptance_time else '—'}\n"
             f"<b>Закрыта:</b> {close_time if close_time else '—'}\n"
             f"<b>Тип работ:</b> {work_type if work_type else '—'}\n"
@@ -59,7 +61,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
             f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
         )
 
-        keyboard = create_worker_keyboard(0, len(tasks))
+        keyboard = create_worker_keyboard(0, len(tasks), task_number)
         await callback_query.message.edit_text(message_text, reply_markup=keyboard, parse_mode="HTML")
 
     await callback_query.answer()
@@ -93,7 +95,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
         await callback_query.message.edit_text("Задачи за неделю:", reply_markup=keyboard)
     else:
         task = tasks[0]
-        _, task_number, base_station, status, assigned_to, issue_time, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person = task
+        _, task_number, base_station, status, assigned_to, issue_time, timereq, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
         fio = db.get_fio_worker(assigned_to)
 
         message_text = (
@@ -102,6 +104,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
             f"<b>Статус:</b> {status}\n"
             f"<b>Исполнитель:</b> {fio}\n"
             f"<b>Выдана:</b> {issue_time}\n"
+            f"<b>Время прибытия:</b> {timereq}\n"
             f"<b>Принята:</b> {acceptance_time if acceptance_time else '—'}\n"
             f"<b>Закрыта:</b> {close_time if close_time else '—'}\n"
             f"<b>Тип работ:</b> {work_type if work_type else '—'}\n"
@@ -112,7 +115,7 @@ async def accepted_tasks_today(callback_query: CallbackQuery, state: FSMContext)
             f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
         )
 
-        keyboard = create_worker_keyboard(0, len(tasks))
+        keyboard = create_worker_keyboard(0, len(tasks), task_number)
         await callback_query.message.edit_text(message_text, reply_markup=keyboard, parse_mode="HTML")
 
     await callback_query.answer()
@@ -142,7 +145,7 @@ async def accepted_tasks(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.message.edit_text("Выберите заявку для просмотра:", reply_markup=keyboard)
     else:
         task = tasks[0]
-        _, task_number, base_station, status, assigned_to, issue_time, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person = task
+        _, task_number, base_station, status, assigned_to, issue_time, timereq, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
         fio = db.get_fio_worker(assigned_to)
 
         message_text = (
@@ -151,6 +154,7 @@ async def accepted_tasks(callback_query: CallbackQuery, state: FSMContext):
             f"<b>Статус:</b> {status}\n"
             f"<b>Исполнитель:</b> {fio}\n"
             f"<b>Выдана:</b> {issue_time}\n"
+            f"<b>Время прибытия:</b> {timereq}\n"
             f"<b>Принята:</b> {acceptance_time if acceptance_time else '—'}\n"
             f"<b>Закрыта:</b> {close_time if close_time else '—'}\n"
             f"<b>Тип работ:</b> {work_type if work_type else '—'}\n"
@@ -161,7 +165,7 @@ async def accepted_tasks(callback_query: CallbackQuery, state: FSMContext):
             f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
         )
 
-        keyboard = create_worker_keyboard(0, len(tasks))
+        keyboard = create_worker_keyboard(0, len(tasks), task_number)
         await callback_query.message.edit_text(message_text, reply_markup=keyboard, parse_mode="HTML")
 
     await callback_query.answer()
@@ -202,7 +206,7 @@ async def switch_worker_task(callback_query: CallbackQuery, state: FSMContext):
     await state.update_data(current_page=index)
 
     task = tasks[index]
-    _, task_number, base_station, status, assigned_to, issue_time, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person = task
+    _, task_number, base_station, status, assigned_to, issue_time, timereq, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
     fio = db.get_fio_worker(assigned_to)
 
     message_text = (
@@ -211,6 +215,7 @@ async def switch_worker_task(callback_query: CallbackQuery, state: FSMContext):
         f"<b>Статус:</b> {status}\n"
         f"<b>Исполнитель:</b> {fio}\n"
         f"<b>Выдана:</b> {issue_time}\n"
+        f"<b>Время прибытия:</b> {timereq}\n"
         f"<b>Принята:</b> {acceptance_time if acceptance_time else '—'}\n"
         f"<b>Закрыта:</b> {close_time if close_time else '—'}\n"
         f"<b>Тип работ:</b> {work_type if work_type else '—'}\n"
@@ -221,7 +226,7 @@ async def switch_worker_task(callback_query: CallbackQuery, state: FSMContext):
         f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
     )
 
-    keyboard = create_worker_keyboard(index, len(tasks))
+    keyboard = create_worker_keyboard(index, len(tasks), task_number)
     await callback_query.message.edit_text(message_text, reply_markup=keyboard, parse_mode="HTML")
     await callback_query.answer()
 
@@ -235,7 +240,7 @@ async def view_task(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.answer("Заявка не найдена.", show_alert=True)
         return
 
-    _, task_number, base_station, status, assigned_to, issue_time, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person = task
+    _, task_number, base_station, status, assigned_to, issue_time, timereq, acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
     fio = db.get_fio_worker(assigned_to)
 
     message_text = (
@@ -244,6 +249,7 @@ async def view_task(callback_query: CallbackQuery, state: FSMContext):
         f"<b>Статус:</b> {status}\n"
         f"<b>Исполнитель:</b> {fio}\n"
         f"<b>Выдана:</b> {issue_time}\n"
+        f"<b>Время прибытия:</b> {timereq}\n"
         f"<b>Принята:</b> {acceptance_time if acceptance_time else '—'}\n"
         f"<b>Закрыта:</b> {close_time if close_time else '—'}\n"
         f"<b>Тип работ:</b> {work_type if work_type else '—'}\n"
@@ -258,10 +264,15 @@ async def view_task(callback_query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     tasks = data.get("tasks", [])
     current_page = data.get("current_page", 0)
-
+    
     # Оставляем клавиатуру той же страницы
     keyboard = create_supervisor_keyboard(tasks, page=current_page)
-
+    keyboard.inline_keyboard.append([
+        InlineKeyboardButton(
+            text="Закрыть заявку",
+            callback_data=f"close_task:{task_number}"
+        )
+    ])
     await callback_query.message.edit_text(message_text, reply_markup=keyboard, parse_mode="HTML")
     await callback_query.answer()
 

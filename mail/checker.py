@@ -22,14 +22,11 @@ async def check_mail(bot):
             tz = pytz.timezone("Europe/Moscow")
             now = datetime.now(tz)
             minutes_ago = now - timedelta(minutes=20)
-
-            since_time = minutes_ago.strftime("%d-%b-%Y")
             
-            print(f"Проверяем почту с {since_time}")
+            since_time = minutes_ago.strftime("%d-%b-%Y")
             
             status, messages = mail.search(None, "UNSEEN")
             mail_ids = messages[0].split()
-
             for mail_id in mail_ids:
                 status, msg_data = mail.fetch(mail_id, "(RFC822)")
                 for response_part in msg_data:
@@ -41,13 +38,12 @@ async def check_mail(bot):
 
                         if msg_date >= minutes_ago:
                             sender = msg["From"]
+                            print(sender)
                             subject_parts = decode_header(msg["Subject"])
                             subject = " ".join(
                                 part.decode(encoding or "utf-8", errors="ignore") if isinstance(part, bytes) else part
                                 for part, encoding in subject_parts
                             )
-
-                            print(f"Получено письмо от: {sender}, Тема: {subject}")
                             status_match = re.search(r"\((.*?)\)", subject)
                             status_text = status_match.group(1) if status_match else "Неизвестно"
 
@@ -76,10 +72,12 @@ async def check_mail(bot):
 
                             info = extract_important_info(body)
                             info["status"] = status_text
-
+                                
                             existing_task = db.get_task_status(info["task_number"])
                             if existing_task:
                                 if info["status"] in ["Закрыта", "Закрыто"]:
+                                    if info["status"] == "Закрыто" :
+                                        info["status"] = "Закрыта"
                                     if existing_task[0] not in ["Закрыта"]:
                                         supervisors = db.get_all_supervisors()
                                         db.close_task(info["status"], info["finish_datetime"], info["task_number"])
@@ -90,6 +88,8 @@ async def check_mail(bot):
                                         worker_id = db.get_task_by_number(info["task_number"])
                                         await bot.send_message(worker_id[4], text)
                                 if info["status"] in ["Отмена", "Отменено"]:
+                                    if info["status"] == "Отменено":
+                                        info["status"] = "Отмена"
                                     if existing_task[0] not in ["Отмена"]:
                                         db.close_task(info["status"], info["finish_datetime"], info["task_number"])
                                         text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
@@ -98,12 +98,16 @@ async def check_mail(bot):
                                         supervisors = db.get_all_supervisors()
                                         for supervisor in supervisors:
                                             supervisor_id = supervisor[0]
-                                            await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>,  сразу {info['status']}.")
+                                            await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>, сразу {info['status']}.")
                             else:
                                 if info["status"] in ["Закрыта", "Отмена", "Закрыто", "Отменено", "Не выполнено подрядчиком", "Выдано ошибочно"]:
+                                    if info["status"] == "Отменено" :
+                                        info["status"] = "Отмена"
+                                    elif info["status"] == "Закрыто":
+                                        info["status"] = "Закрыта"
                                     db.add_task(
                                         info["task_number"], info["bs_number"], info["status"], None,
-                                        info["issue_datetime"], None, info["finish_datetime"],
+                                        info["issue_datetime"], info["arrival_datetime"], None, info["finish_datetime"],
                                         info["work_type"], info["description"], info["short_description"],
                                         info["comments"], info["address"], info["responsible_person"]
                                     )
@@ -111,6 +115,7 @@ async def check_mail(bot):
                                     for supervisor in supervisors:
                                         supervisor_id = supervisor[0]
                                         await bot.send_message(supervisor_id, f"Новая заявка \n <code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>,  сразу {info['status']}.")
+
                                 elif info["status"] in ["Новое","В работе","Новая"]:
                                     encode = quote_plus(info['address'])
                                     url = f"https://yandex.ru/maps/?text={encode}"
@@ -133,16 +138,12 @@ async def check_mail(bot):
                                         supervisor_id = supervisor[0]
                                         sent = await bot.send_message(supervisor_id, message_text, parse_mode="HTML", reply_markup = send_to_topic_button(info["task_number"]))
                                         db.save_sent_message(info["task_number"], supervisor_id, sent.message_id)
-                                        print(sent.message_id)
                                     db.add_task(
                                         info["task_number"], info["bs_number"], "Новое", None,
-                                        info["issue_datetime"], None, None,
+                                        info["issue_datetime"], info["arrival_datetime"], None, None,
                                         info["work_type"], info["description"], info["short_description"],
                                         info["comments"], info["address"], info["responsible_person"]
                                     )
-                                    
-
-
             mail.close()
             mail.logout()
         except Exception as e:

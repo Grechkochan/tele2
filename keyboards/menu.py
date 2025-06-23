@@ -23,7 +23,8 @@ def main_menu():
                 [InlineKeyboardButton(text="Принятые заявки", callback_data = "Accepted_Tasks")],
                 [InlineKeyboardButton(text="Новые заявки", callback_data = "New_Tasks")],
                 [InlineKeyboardButton(text="Поиск по заявке", callback_data = "Find_Task")],
-                [InlineKeyboardButton(text="Статистика", callback_data = "Statistics")]
+                [InlineKeyboardButton(text="Статистика", callback_data = "Statistics")],
+                [InlineKeyboardButton(text="Создать отчет", callback_data = "ReportOpex")]
 
         ]
     )

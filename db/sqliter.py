@@ -9,37 +9,19 @@ class SQLighter:
         self.connection = sqlite3.connect(database)
         self.cursor = self.connection.cursor()
 
-    def _create_sent_messages_table(self) -> None:
-        """
-        Создаёт таблицу sent_messages, если она ещё не существует.
-        Хранит информацию о том, каким супервизорам (chat_id) и каким сообщением (message_id)
-        была разослана каждая заявка (task_number).
-        """
-        with self.connection:
-            self.cursor.execute("""
-                CREATE TABLE IF NOT EXISTS `sent_messages` (
-                    `id`           INTEGER PRIMARY KEY AUTOINCREMENT,
-                    `task_number`  TEXT    NOT NULL,
-                    `chat_id`      INTEGER NOT NULL,
-                    `message_id`   INTEGER NOT NULL,
-                    `sent_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(`task_number`, `chat_id`, `message_id`)
-                );
-            """)
-
     def add_worker(self, tgId, WorkerFIO, phoneNumber, City, Position):
         with self.connection:
             self.cursor.execute("INSERT INTO `Workers` (`tgId`, `WorkerFIO`, `phoneNumber`, `City`, `Position` ) VALUES(?,?,?,?,?)",
                                 (tgId, WorkerFIO, phoneNumber, City, Position))
             
-    def add_task(self, tasknum, basestation, status, worker, issue_datetime, datetimeacc, datetimeclose,
+    def add_task(self, tasknum, basestation, status, worker, issue_datetime, datetimereq, datetimeacc, datetimeclose,
              work_type, description, short_description, comments, address, responsible_person):
         with self.connection:
             self.cursor.execute(
-                "INSERT INTO Tasks (tasknum, basestation, status, worker, datetime, datetimeacc, datetimeclose, "
+                "INSERT INTO Tasks (tasknum, basestation, status, worker, datetime, datetimereq, datetimeacc, datetimeclose, "
                 "work_type, description, short_description, comments, adress, responsible_person) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (tasknum, basestation, status, worker, issue_datetime, datetimeacc, datetimeclose,
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (tasknum, basestation, status, worker, issue_datetime, datetimereq, datetimeacc, datetimeclose,
                 work_type, description, short_description, comments, address, responsible_person)
             )
 
@@ -81,6 +63,11 @@ class SQLighter:
             result = self.cursor.execute("SELECT `WorkerFIO` FROM `Workers` WHERE `tgId` = ?", (tgId,)).fetchone()
             return result[0] if result else None
     
+    def get_workers(self):
+        with self.connection:
+            result = self.cursor.execute("SELECT tgId, WorkerFIO FROM `Workers`").fetchall()
+            return result
+
     def get_sitename(self, task_number):
         with self.connection:
             result = self.cursor.execute("SELECT `basestation` FROM `Tasks` WHERE `tasknum` = ?",(task_number,)).fetchone()
@@ -172,7 +159,11 @@ class SQLighter:
         end = start + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
             result = self.cursor.execute(
-                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ?",
+                """
+                SELECT * FROM `Tasks`
+                WHERE `datetime` BETWEEN ? AND ?
+                AND (`exited_by_worker` IS NULL OR `exited_by_worker` = '')
+                """,
                 (start, end)
             ).fetchall()
             return result
@@ -182,7 +173,12 @@ class SQLighter:
         end = start + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
             result = self.cursor.execute(
-                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ? AND `worker` = ?",
+                """
+                SELECT * FROM `Tasks`
+                WHERE `datetime` BETWEEN ? AND ?
+                AND `worker` = ?
+                AND (`exited_by_worker` IS NULL OR `exited_by_worker` = '')
+                """,
                 (start, end, workerid)
             ).fetchall()
             return result
@@ -192,7 +188,11 @@ class SQLighter:
         end = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
             result = self.cursor.execute(
-                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ?",
+                """
+                SELECT * FROM `Tasks`
+                WHERE `datetime` BETWEEN ? AND ?
+                AND (`exited_by_worker` IS NULL OR `exited_by_worker` = '')
+                """,
                 (start, end)
             ).fetchall()
             return result
@@ -202,7 +202,12 @@ class SQLighter:
         end = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(microseconds=1)
         with self.connection:
             result = self.cursor.execute(
-                "SELECT * FROM `Tasks` WHERE `status` = 'В работе' AND `datetime` BETWEEN ? AND ? AND `worker` = ?",
+                """
+                SELECT * FROM `Tasks`
+                WHERE `datetime` BETWEEN ? AND ?
+                AND `worker` = ?
+                AND (`exited_by_worker` IS NULL OR `exited_by_worker` = '')
+                """,
                 (start, end, workerid)
             ).fetchall()
             return result
@@ -256,4 +261,29 @@ class SQLighter:
                 """,
                 (task_number,)
             ).fetchall()
-            return result    
+            return result
+        
+    def close_task_by_worker(self, task_number: str, closed_datetime: str, quantity: int, close_code: str):
+        with self.connection:
+            self.cursor.execute(
+            """
+            UPDATE Tasks
+               SET status            = 'Закрыта',
+                   exited_by_worker  = ?,
+                   close_code        = ?,
+                   quantity          = ?,
+                   datetimeclose     = CASE 
+                                          WHEN datetimeclose IS NULL 
+                                            THEN ? 
+                                          ELSE datetimeclose 
+                                        END
+             WHERE tasknum           = ?
+            """,
+            (
+                closed_datetime,  # для exited_by_worker
+                close_code,       # для close_code
+                quantity,         # для quantity
+                closed_datetime,  # для заполнения datetimeclose, если оно было NULL
+                task_number       # в WHERE
+            )
+        )

@@ -19,7 +19,7 @@ async def accept_task_callback(callback_query: CallbackQuery, bot: Bot):
     db.update_task("В работе", user_id, current_time, task_number)
     task_data = db.get_task_by_number(task_number)
     fio = db.get_fio_worker(user_id)
-    encode = quote_plus(task_data[12])
+    encode = quote_plus(task_data[13])
     url = f"https://yandex.ru/maps/?text={encode}"
     message_text = (
                         f"<b>ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤНовое задание!</b>\n\n"
@@ -28,12 +28,13 @@ async def accept_task_callback(callback_query: CallbackQuery, bot: Bot):
                         f"<b>Статус:</b> {task_data[3]}\n"
                         f"<b>Дата выдачи:</b> {task_data[5]}\n"
                         f"<b>Время прибытия:</b> {task_data[6]}\n"
-                        f"<b>Тип работ:</b> {task_data[8]}\n"
-                        f"<b>Краткое описание работ:</b> {task_data[9]}\n"
-                        f"<b>Описание работ:</b> {task_data[10]}\n"
-                        f"<b>Примечание / Комментарии:</b> {task_data[11]}\n"
-                        f'<b>Адрес:</b> <a href="{url}">{task_data[12]}</a>\n'
-                        f"<b>Ответственный:</b> {task_data[13]}\n"
+                        f"<b>Время принятия:</b> {task_data[7]}\n"
+                        f"<b>Тип работ:</b> {task_data[9]}\n"
+                        f"<b>Краткое описание работ:</b> {task_data[10]}\n"
+                        f"<b>Описание работ:</b> {task_data[11]}\n"
+                        f"<b>Примечание / Комментарии:</b> {task_data[12]}\n"
+                        f'<b>Адрес:</b> <a href="{url}">{task_data[13]}</a>\n'
+                        f"<b>Ответственный:</b> {task_data[14]}\n"
                         f"<b>Для подтверждения принятия WO в работу отправьте на номер 359 СМС с текстом:</b> "
                         f"<code>#107*{task_data[1].replace('T2','')}#</code>\n"
                     )
@@ -49,5 +50,5 @@ async def accept_task_callback(callback_query: CallbackQuery, bot: Bot):
     )
     supervisors = db.get_all_supervisors()
     for supervisor in supervisors:
-        await bot.send_message(supervisor[0], f"<b>Задача № </b><code>{task_data[1]}</code>\n <b>Б/C - {task_data[2]}</b>\n <b>Принята : {fio} в {current_time} </b>", parse_mode="HTML")
+        await bot.send_message(supervisor[0], f"<b>Задача № </b><code>{task_data[1]}</code>\n<b>Б/C - {task_data[2]}</b>\n<b>Принята : {fio} в {current_time} </b>", parse_mode="HTML")
     await callback_query.answer("Заявка принята.")

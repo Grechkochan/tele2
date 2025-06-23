@@ -16,46 +16,31 @@ def extract_important_info(text):
         "Ответственный Tele2": "responsible_person",
     }
 
-    # создаём словарь со всеми полями сразу, по умолчанию — пустые строки
-    extracted_info = {v: "" for v in KEYWORDS.values()}
+    # создаём результирующий словарь со всеми полями по умолчанию пустыми
+    extracted = {v: "" for v in KEYWORDS.values()}
 
-    # приводим в единый вид « / » и « :»
-    text = re.sub(r"\s*/\s*", "/", text)
-    text = re.sub(r"\s*:\s*", ":", text)
-
-    for line in text.splitlines():
-        line = line.strip()
-        if ":" not in line:
+    # для каждого ключа ищем блок текста до следующего ключа или до конца
+    for key, field in KEYWORDS.items():
+        # (?ms) — re.MULTILINE + re.DOTALL: ^ и $ работают на линию, а . ловит переводы строк
+        pattern = rf"(?ms)^{re.escape(key)}\s*:\s*(.*?)(?=^\S.*?:|\Z)"
+        m = re.search(pattern, text)
+        if not m:
             continue
+        value = m.group(1).strip()  # убираем лишние пробелы и переносы
 
-        raw_key, raw_value = line.split(":", 1)
-        raw_key = raw_key.strip()
-        raw_value = raw_value.strip()
+        # если значение «None» или пусто — считаем его пустым
+        if not value or value.lower() == "none":
+            value = ""
+        # нормализуем WO номер
+        elif field == "task_number":
+            value = re.sub(r"(\w+)\s+(\d+)", r"\1\2", value)
+        # нормализуем даты в формате «YYYY-MM-DD HH:MM:SS»
+        value = re.sub(
+            r"(\d{2,4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})",
+            r"\1 \2:\3:\4",
+            value,
+        )
 
-        # пропускаем, если после ':' нет никакого значения
-        if not raw_value:
-            continue
+        extracted[field] = value
 
-        for keyword, key in KEYWORDS.items():
-            if raw_key == keyword:
-                value = raw_value
-
-                # «None» → пустая строка
-                if value.lower() == "none":
-                    value = ""
-
-                # склеиваем «WO 1234» → «WO1234»
-                if key == "task_number":
-                    value = re.sub(r"(\w+)\s+(\d+)", r"\1\2", value)
-
-                # унифицируем формат даты «YYYY-MM-DD HH:MM:SS»
-                value = re.sub(
-                    r"(\d{2,4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})",
-                    r"\1 \2:\3:\4",
-                    value,
-                )
-
-                extracted_info[key] = value
-                break
-
-    return extracted_info
+    return extracted

@@ -19,7 +19,7 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
     if not task_data:
         await callback_query.answer("Ошибка: заявка не найдена.")
         return
-    encode = quote_plus(task_data[12])
+    encode = quote_plus(task_data[13])
     url = f"https://yandex.ru/maps/?text={encode}"
     message_text = (
         f"<b>ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤНовое задание!</b>\n\n"
@@ -27,12 +27,13 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
         f"<b>Номер БС:</b> {task_data[2]}\n"
         f"<b>Статус:</b> {task_data[3]}\n"
         f"<b>Дата выдачи:</b> {task_data[5]}\n"
-        f"<b>Тип работ:</b> {task_data[8]}\n"
-        f"<b>Краткое описание работ:</b> {task_data[9]}\n"
-        f"<b>Описание работ:</b> {task_data[10]}\n"
-        f"<b>Примечание / Комментарии:</b> {task_data[11]}\n"
-        f'<b>Адрес:</b> <a href="{url}">{task_data[12]}</a>\n'
-        f"<b>Ответственный:</b> {task_data[13]}\n"
+        f"<b>Время прибытия:</b> {task_data[6]}\n"
+        f"<b>Тип работ:</b> {task_data[9]}\n"
+        f"<b>Краткое описание работ:</b> {task_data[10]}\n"
+        f"<b>Описание работ:</b> {task_data[11]}\n"
+        f"<b>Примечание / Комментарии:</b> {task_data[12]}\n"
+        f'<b>Адрес:</b> <a href="{url}">{task_data[13]}</a>\n'
+        f"<b>Ответственный:</b> {task_data[14]}\n"
     )
     sent_keyboard = InlineKeyboardMarkup(
         inline_keyboard = [
@@ -55,8 +56,6 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
             message_id=message_id,
             reply_markup=sent_keyboard
         )
-
-    # не забудьте ответить, чтобы убрать «крутилку»
     await callback_query.answer()
 
 

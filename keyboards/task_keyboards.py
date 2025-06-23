@@ -20,7 +20,7 @@ def create_supervisor_keyboard(tasks, page):
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def create_worker_keyboard(current_index, total_tasks):
+def create_worker_keyboard(current_index, total_tasks,task_number):
     keyboard = []
 
     nav_buttons = []
@@ -30,7 +30,7 @@ def create_worker_keyboard(current_index, total_tasks):
         nav_buttons.append(InlineKeyboardButton(text="Следующая ➡️", callback_data="next_task"))
     if nav_buttons:
         keyboard.append(nav_buttons)
-
+    keyboard.append([InlineKeyboardButton(text="Закрыть заявку", callback_data=f"close_task:{task_number}")])
     keyboard.append([InlineKeyboardButton(text="Главное меню", callback_data="Main_Menu")])
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
