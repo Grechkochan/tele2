@@ -54,8 +54,11 @@ async def check_mail(bot):
                             payload = msg.get_payload(decode=True)
                             charset = msg.get_content_charset() or "utf-8"
                             body = payload.decode(charset, errors="ignore")
-                        
-                        info = extract_important_info_resp(body)
+                        real_email = parseaddr(sender)[1].lower()
+                        if real_email == "noc.rostov@info.t2.ru":
+                            info = extract_important_info(body)
+                        else:
+                            info = extract_important_info_resp(body)
                         info["status"] = status_text
                         if info["status"] in ["Новое", "Новая", "В работе"]:
                                 encode = quote_plus(info['address'])
