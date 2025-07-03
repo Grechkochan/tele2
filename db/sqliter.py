@@ -287,3 +287,18 @@ class SQLighter:
                 task_number       # в WHERE
             )
         )
+            
+    def deny_task(self,tasknum):
+        with self.connection:
+            self.cursor.execute(
+                """
+                UPDATE Tasks
+                SET
+                    worker = NULL,
+                    datetimereq = NULL,
+                    status = 'Новое'
+                WHERE
+                    tasknum = ?;
+                """,
+                (tasknum,)
+            )
