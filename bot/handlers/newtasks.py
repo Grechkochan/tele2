@@ -79,7 +79,7 @@ async def task_detail(callback_query: CallbackQuery, state: FSMContext):
     if not task:
         await callback_query.answer("Заявка не найдена.", show_alert=True)
         return
-    _, task_number, base_station, status, _, issue_time, _, _, work_type, description, short_description, comments, address, responsible_person = task
+    _, task_number, base_station, status, _, issue_time, timereq, _, _, work_type, description, short_description, comments, address, responsible_person, _, _, _ = task
 
     message_text = (
         f"<b>Номер задачи:</b> {task_number}\n"
