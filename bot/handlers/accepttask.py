@@ -14,10 +14,14 @@ async def get_bot():
 @accept_router.callback_query(F.data.startswith("Accept_Task:"))
 async def accept_task_callback(callback_query: CallbackQuery, bot: Bot):
     task_number = callback_query.data.split(":")[1]
+    task_data = db.get_task_by_number(task_number)
+    if task_data[3] == "В работе":
+        await callback_query.answer("❗Заявка уже в работе.", show_alert=True)
+        return
     user_id = callback_query.from_user.id
     current_time = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%Y-%m-%d %H:%M:%S")
     db.update_task("В работе", user_id, current_time, task_number)
-    task_data = db.get_task_by_number(task_number)
+    
     fio = db.get_fio_worker(user_id)
     encode = quote_plus(task_data[13])
     url = f"https://yandex.ru/maps/?text={encode}"
@@ -28,7 +32,7 @@ async def accept_task_callback(callback_query: CallbackQuery, bot: Bot):
                         f"<b>Статус:</b> {task_data[3]}\n"
                         f"<b>Дата выдачи:</b> {task_data[5]}\n"
                         f"<b>Время прибытия:</b> {task_data[6]}\n"
-                        f"<b>Время принятия:</b> {task_data[7]}\n"
+                        f"<b>Время принятия:</b> {current_time}\n"
                         f"<b>Тип работ:</b> {task_data[9]}\n"
                         f"<b>Краткое описание работ:</b> {task_data[10]}\n"
                         f"<b>Описание работ:</b> {task_data[11]}\n"

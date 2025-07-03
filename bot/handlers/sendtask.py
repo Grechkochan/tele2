@@ -49,13 +49,14 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
         group_id, message_text, parse_mode="HTML",
         reply_markup=accept_task(task_number), message_thread_id=topicid
     )
-    records = db.get_sent_messages(task_number)  
+    records = db.get_sent_messages(task_number)
     for chat_id, message_id in records:
         await bot.edit_message_reply_markup(
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=sent_keyboard
         )
+    db.issent(task_number)
     await callback_query.answer()
 
 

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from email.header import decode_header
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
-from config import mail_imap, mail_login, mail_password, check_mail_interval
+from config import mail_imap, mail_login, mail_password, check_mail_interval, group_id
 from mail.extractor import extract_important_info, extract_important_info_resp
 from db import db
 from keyboards.menu import send_to_topic_button
@@ -60,8 +60,10 @@ async def check_mail(bot):
                         else:
                             info = extract_important_info_resp(body)
                         info["status"] = status_text
+                        task_exists = db.get_task_status(info["task_number"])
                         if info["status"] in ["Новое", "Новая", "В работе"]:
-                                encode = quote_plus(info['address'])
+                            if not task_exists:
+                                encode = quote_plus(info['address'])        
                                 url = f"https://yandex.ru/maps/?text={encode}"
                                 message_text = (
                                     f"<b>ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤНовое задание!</b>\n\n"
@@ -82,48 +84,41 @@ async def check_mail(bot):
                                     supervisor_id = supervisor[0]
                                     sent = await bot.send_message(supervisor_id, message_text, parse_mode="HTML", reply_markup=send_to_topic_button(info["task_number"]))
                                     db.save_sent_message(info["task_number"], supervisor_id, sent.message_id)
-
                                 db.add_task(
                                     info["task_number"], info["bs_number"], "Новое", None,
                                     info["issue_datetime"], info["arrival_datetime"], None, None,
                                     info["work_type"], info["description"], info["short_description"],
                                     info["comments"], info["address"], info["responsible_person"]
                                 )
-
-                            # Ветка 2: Все остальные статусы (например, "Закрыта", "Отмена" и т.п.)
                         else:
-                                existing_task = db.get_task_status(info["task_number"])
-                                text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info["status"]}</b>."
+                            text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
 
-                                if existing_task:
-                                    # Обновляем статус и дату завершения
-                                    db.close_task(info["status"], info["finish_datetime"], info["task_number"])
-
-                                    # Уведомляем всех
-                                    supervisors = db.get_all_supervisors()
-                                    for supervisor in supervisors:
-                                        supervisor_id = supervisor[0]
-                                        await bot.send_message(supervisor_id, text)
-
-                                    worker = db.get_task_by_number(info["task_number"])
-                                    if worker and len(worker) > 4 and worker[4]:
-                                        await bot.send_message(worker[4], text)
-
-                                else:
-                                    # Добавляем сразу с финальным статусом
-                                    db.add_task(
-                                        info["task_number"], info["bs_number"], info["status"], None,
-                                        info["issue_datetime"], info["arrival_datetime"], None, info["finish_datetime"],
-                                        info["work_type"], info["description"], info["short_description"],
-                                        info["comments"], info["address"], info["responsible_person"]
-                                    )
-
-                                    # Уведомление: заявка сразу с финальным статусом
-                                    text = f"Новая заявка \n<code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>, сразу {info["status"]}."
-                                    supervisors = db.get_all_supervisors()
-                                    for supervisor in supervisors:
-                                        supervisor_id = supervisor[0]
-                                        await bot.send_message(supervisor_id, text)
+                            if task_exists:
+                                db.close_task(info["status"], info["finish_datetime"], info["task_number"])
+                                supervisors = db.get_all_supervisors()
+                                for supervisor in supervisors:
+                                    supervisor_id = supervisor[0]
+                                    await bot.send_message(supervisor_id, text)
+                                worker = db.get_task_by_number(info["task_number"])
+                                if worker and len(worker) > 4 and worker[4]:
+                                    await bot.send_message(int(worker[4]), text)
+                                sent_info = db.ifsent(info["task_number"])
+                                if sent_info:
+                                    topic_id = db.get_topic_id_by_sitename(info["bs_number"])
+                                    if topic_id:
+                                        await bot.send_message(chat_id = group_id, text = text, message_thread_id=int(topic_id[0]))
+                            else:
+                                db.add_task(
+                                    info["task_number"], info["bs_number"], info["status"], None,
+                                    info["issue_datetime"], info["arrival_datetime"], None, info["finish_datetime"],
+                                    info["work_type"], info["description"], info["short_description"],
+                                    info["comments"], info["address"], info["responsible_person"]
+                                )
+                                text = f"Новая заявка \n<code>{info['task_number']}</code>\nНа б/с - <b>{info['bs_number']}</b>, сразу закрылась со статусом: {info['status']}."
+                                supervisors = db.get_all_supervisors()
+                                for supervisor in supervisors:
+                                    supervisor_id = supervisor[0]
+                                    await bot.send_message(supervisor_id, text)
             mail.close()
             mail.logout()
         except Exception as e:

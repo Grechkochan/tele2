@@ -263,6 +263,26 @@ class SQLighter:
             ).fetchall()
             return result
         
+    def issent(self,tasknum):
+        with self.connection:
+            self.cursor.execute("""
+                                UPDATE sent_messages
+                                SET sent_to_topic = 'YES'
+                                WHERE task_number = ?
+                            """, (tasknum,))
+    
+    def ifsent(self, tasknum):
+        with self.connection:
+            self.cursor.execute("""
+                SELECT 1
+                FROM sent_messages
+                WHERE task_number = ?
+                AND sent_to_topic LIKE '%YES%'
+                LIMIT 1
+            """, (tasknum,))
+            result = self.cursor.fetchone()
+        return result is not None
+
     def close_task_by_worker(self, task_number: str, closed_datetime: str, quantity: int, close_code: str):
         with self.connection:
             self.cursor.execute(

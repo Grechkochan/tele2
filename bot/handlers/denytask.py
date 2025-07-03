@@ -13,7 +13,11 @@ deny_router = Router()
 async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
     task_number = callback_query.data.split(":")[1]
     task_data = db.get_task_by_number(task_number)
-    db.deny_task(task_data[1])
+    if task_data[3] == "В работе":
+        db.deny_task(task_data[1])
+    else:
+        await callback_query.answer("Вы не можете отказаться от закрытой задачи")
+        return
     if not task_data:
         await callback_query.answer("Ошибка: заявка не найдена.")
         return
@@ -33,7 +37,6 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
         f'<b>Адрес:</b> <a href="{url}">{task_data[13]}</a>\n'
         f"<b>Ответственный:</b> {task_data[14]}\n"
     )
-    db.deny_task(task_data[1])
     topicid = db.get_topic_id_by_sitename(task_data[2])
     try:
         topicid = int(topicid[0])
