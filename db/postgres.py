@@ -63,8 +63,9 @@ class DB:
         self.cur.execute(sql, (status, finish_datetime, tasknum))
 
     def seek_worker(self, workerid):
+        tg_str = str(workerid)
         sql = "SELECT * FROM Workers WHERE tgId = %s"
-        self.cur.execute(sql, (workerid,))
+        self.cur.execute(sql, (tg_str,))
         return self.cur.fetchall()
 
     def check_worker(self, workerid):
