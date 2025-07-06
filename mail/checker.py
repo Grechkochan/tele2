@@ -2,8 +2,6 @@ import imaplib
 import email
 import re
 import asyncio
-import pytz
-from datetime import datetime, timedelta
 from email.header import decode_header
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
@@ -32,10 +30,7 @@ async def check_mail(bot):
                                 part.decode(encoding or "utf-8", errors="ignore") if isinstance(part, bytes) else part
                                 for part, encoding in subject_parts
                         )
-                        status_match = re.search(r"\((.*?)\)", subject)
-                        status_text = status_match.group(1) if status_match else "Неизвестно"
                         print(repr(sender))
-                        print(status_text)
                         body = ""
                         if msg.is_multipart():
                             for part in msg.walk():
@@ -54,12 +49,16 @@ async def check_mail(bot):
                             payload = msg.get_payload(decode=True)
                             charset = msg.get_content_charset() or "utf-8"
                             body = payload.decode(charset, errors="ignore")
-                        real_email = parseaddr(sender)[1].lower()
-                        if real_email == "noc.rostov@info.t2.ru":
-                            info = extract_important_info(body)
-                        else:
-                            info = extract_important_info_resp(body)
-                        info["status"] = status_text
+                        sender_email = parseaddr(sender)[1].lower()
+                        is_noc = (sender_email == "noc.rostov@info.t2.ru")
+                        extract = extract_important_info if is_noc else extract_important_info_resp
+                        info = extract(body)
+                        if is_noc:
+                            match = re.search(r"\((.*?)\)", subject)
+                            if match:
+                                info["status"] = match.group(1)
+                            else:
+                                info.pop("status", None)
                         task_exists = db.get_task_status(info["task_number"])
                         if info["status"] in ["Новое", "Новая", "В работе"]:
                             if not task_exists:
@@ -92,7 +91,6 @@ async def check_mail(bot):
                                 )
                         else:
                             text = f"Заявка <code>{info['task_number']}</code>, на <b>б/c - {info['bs_number']}</b> обновлена, статус: <b>{info['status']}</b>."
-
                             if task_exists:
                                 db.close_task(info["status"], info["finish_datetime"], info["task_number"])
                                 supervisors = db.get_all_supervisors()
@@ -105,6 +103,10 @@ async def check_mail(bot):
                                 sent_info = db.ifsent(info["task_number"])
                                 if sent_info:
                                     topic_id = db.get_topic_id_by_sitename(info["bs_number"])
+                                    try:
+                                        topicid = int(topicid[0])
+                                    except (TypeError, ValueError, IndexError):
+                                        topicid = 2
                                     if topic_id:
                                         await bot.send_message(chat_id = group_id, text = text, message_thread_id=int(topic_id[0]))
                             else:

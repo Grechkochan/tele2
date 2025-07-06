@@ -20,3 +20,8 @@ class DatePicker(StatesGroup):
 
 class SearchState(StatesGroup):
     waiting_for_task_number = State()
+
+class CloseTaskSG(StatesGroup):
+    choosing_ppr       = State()  
+    waiting_for_amount = State()  
+    confirming_ppr     = State()

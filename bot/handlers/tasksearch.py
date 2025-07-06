@@ -25,7 +25,7 @@ async def search_task_callback(message: Message, state: FSMContext):
         await message.answer("Заявка с таким номером не найдена.")
         return
 
-    _, task_number, base_station, status, assigned_to, issue_time, timereq,acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, _, _, _, = task
+    _, task_number, base_station, status, assigned_to, issue_time, timereq,acceptance_time, close_time, work_type, description, short_description, comments, address, responsible_person, exited_by_worker, _, _, = task
     fio = db.get_fio_worker(assigned_to) if assigned_to else "—"
     message_text = (
         f"<b>Номер задачи:</b> {task_number}\n"
@@ -41,7 +41,8 @@ async def search_task_callback(message: Message, state: FSMContext):
         f"<b>Описание:</b> {description if description else '—'}\n"
         f"<b>Комментарии:</b> {comments if comments else '—'}\n"
         f"<b>Адрес:</b> {address if address else '—'}\n"
-        f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
+        f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}\n"
+        f"<b>Закрыта работником:</b> {exited_by_worker if exited_by_worker else '—'}"
     )
 
     await message.answer(message_text, parse_mode="HTML", reply_markup=main_menu())

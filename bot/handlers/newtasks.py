@@ -21,7 +21,6 @@ async def period_new_tasks(callback_query: CallbackQuery, state: FSMContext):
 @new_tasks_router.callback_query(F.data == "New_Tasks_Today")
 async def new_tasks_today(callback_query: CallbackQuery, state: FSMContext):
     today = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%Y-%m-%d")
-    print(today)
     tasks = db.get_new_tasks_today(today)
     if not tasks:
         await callback_query.message.edit_text("Нет задач за сегодня.", reply_markup=main_menu())
@@ -40,7 +39,6 @@ async def new_tasks_today(callback_query: CallbackQuery, state: FSMContext):
 
     end_date = end_date_dt.strftime("%Y-%m-%d")
     start_date = start_date_dt.strftime("%Y-%m-%d")
-    print(start_date, end_date)
     tasks = db.get_new_tasks_week(start_date, end_date)
     if not tasks:
         await callback_query.message.edit_text("Нет задач за неделю.", reply_markup=main_menu())

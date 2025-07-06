@@ -37,11 +37,11 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
         f'<b>Адрес:</b> <a href="{url}">{task_data[13]}</a>\n'
         f"<b>Ответственный:</b> {task_data[14]}\n"
     )
-    topicid = db.get_topic_id_by_sitename(task_data[2])
+    """topicid = db.get_topic_id_by_sitename(task_data[2])
     try:
         topicid = int(topicid[0])
-    except (TypeError, ValueError, IndexError):
-        topicid = 2
+    except (TypeError, ValueError, IndexError):"""
+    topicid = 3
     await bot.send_message(
         group_id, message_text, parse_mode="HTML",
         reply_markup=accept_task(task_number), message_thread_id=topicid

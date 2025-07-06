@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from keyboards.menu import main_menu
@@ -21,9 +21,7 @@ async def start_report(cb: CallbackQuery, state: FSMContext):
     user_id = cb.from_user.id
     role = db.is_supervisor(user_id)
     if role == "Supervisor":
-        # Супервизор выбирает рабочего
-        workers = db.get_workers()  # [(id, fio), ...]
-        # Собираем список кнопок по одному в строке
+        workers = db.get_workers() 
         kb_buttons = [
             [InlineKeyboardButton(text="По всем работникам", callback_data="report_worker:all")]
         ]
@@ -31,7 +29,6 @@ async def start_report(cb: CallbackQuery, state: FSMContext):
             kb_buttons.append(
                 [InlineKeyboardButton(text=fio, callback_data=f"report_worker:{w_id}")]
             )
-        # добавляем отмену
         kb_buttons.append([InlineKeyboardButton(text="Отмена", callback_data="Main_Menu")])
 
         kb = InlineKeyboardMarkup(inline_keyboard=kb_buttons)
@@ -42,15 +39,14 @@ async def start_report(cb: CallbackQuery, state: FSMContext):
             reply_markup=kb
         )
     else:
-        # Простой рабочий — сразу переходим к выбору периода
         await state.update_data(worker_id=str(user_id))
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton("За 2 недели", callback_data="report_period:2weeks"),
-                InlineKeyboardButton("За месяц",    callback_data="report_period:1month"),
+                InlineKeyboardButton(text = "За 2 недели", callback_data="report_period:2weeks"),
+                InlineKeyboardButton(text = "За месяц",    callback_data="report_period:1month"),
             ],
             [
-                InlineKeyboardButton("Отмена", callback_data="Main_Menu")
+                InlineKeyboardButton(text = "Отмена", callback_data="Main_Menu")
             ]
         ])
         await state.set_state(ReportSG.waiting_for_period)
@@ -98,11 +94,9 @@ async def generate_report(cb: CallbackQuery, state: FSMContext):
         start_date = today - timedelta(days=30)
     end_date = today
 
-    # Генерируем и сохраняем файл
     output_path = f"OPEX_{w_id}_{start_date}_{end_date}.xlsx"
     if w_id == "all":
         output_path = f"OPEX_ALL_{start_date}_{end_date}.xlsx"
-        # Полагаем, что в reportopex есть функция fill_report_for_all
         ok = reportopex.fill_report_for_all(
             start_date=start_date.isoformat(),
             end_date=end_date.isoformat(),
@@ -122,13 +116,11 @@ async def generate_report(cb: CallbackQuery, state: FSMContext):
         await state.clear()
         return await cb.answer()
 
-    # Отправляем готовый файл
     await cb.message.answer_document(FSInputFile(output_path))
     await cb.message.answer("Отчёт готов!", reply_markup=main_menu())
     try:
         os.remove(output_path)
     except OSError:
-        # на случай, если файл не существует или занят
         pass
     await state.clear()
     await cb.answer()

@@ -260,12 +260,10 @@ async def view_task(callback_query: CallbackQuery, state: FSMContext):
         f"<b>Ответственный:</b> {responsible_person if responsible_person else '—'}"
     )
 
-    # Получаем список задач и текущую страницу из состояния
     data = await state.get_data()
     tasks = data.get("tasks", [])
     current_page = data.get("current_page", 0)
-    
-    # Оставляем клавиатуру той же страницы
+
     keyboard = create_supervisor_keyboard(tasks, page=current_page)
     keyboard.inline_keyboard.append([
         InlineKeyboardButton(
