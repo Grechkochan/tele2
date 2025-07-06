@@ -40,11 +40,11 @@ async def process_send_to_topic(callback_query: CallbackQuery, bot: Bot):
             [InlineKeyboardButton(text=f"Заявка отправлена в топик", callback_data="noop")]
         ]
     )
-    """topicid = db.get_topic_id_by_sitename(task_data[2])
+    topicid = db.get_topic_id_by_sitename(task_data[2])
     try:
         topicid = int(topicid[0])
-    except (TypeError, ValueError, IndexError):"""
-    topicid = 3
+    except (TypeError, ValueError, IndexError):
+        topicid = 2
     await bot.send_message(
         group_id, message_text, parse_mode="HTML",
         reply_markup=accept_task(task_number), message_thread_id=topicid
