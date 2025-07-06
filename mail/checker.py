@@ -104,11 +104,11 @@ async def check_mail(bot):
                                 if sent_info:
                                     topic_id = db.get_topic_id_by_sitename(info["bs_number"])
                                     try:
-                                        topicid = int(topicid[0])
+                                        topicid = int(topic_id[0])
                                     except (TypeError, ValueError, IndexError):
                                         topicid = 2
                                     if topic_id:
-                                        await bot.send_message(chat_id = group_id, text = text, message_thread_id=int(topic_id[0]))
+                                        await bot.send_message(chat_id = group_id, text = text, message_thread_id=int(topicid))
                             else:
                                 db.add_task(
                                     info["task_number"], info["bs_number"], info["status"], None,
