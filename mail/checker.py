@@ -59,6 +59,10 @@ async def check_mail(bot):
                                 info["status"] = match.group(1)
                             else:
                                 info.pop("status", None)
+                        if info["status"] in {"Закрыта", "Закрыто"}:
+                            info["status"] = "Закрыта"
+                        elif info["status"] in {"Отменено", "Отмена"}:
+                            info["status"] = "Отмена"
                         task_exists = db.get_task_status(info["task_number"])
                         if info["status"] in ["Новое", "Новая", "В работе"]:
                             if not task_exists:

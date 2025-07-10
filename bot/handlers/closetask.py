@@ -140,8 +140,9 @@ async def select_subreason_ppr(cb: CallbackQuery, state: FSMContext):
         # сразу добавляем без количества и переходим к подтверждению
         data = await state.get_data()
         data["ppr_codes"].append(code)
-        data["ppr_quantities"].append(None)
+        data["ppr_quantities"].append(1)
         await state.update_data(data)
+        await state.set_state(CloseTaskSG.confirming_ppr)
         await _ask_more_or_finish(cb, state)
 
 # обработка ввода количества
